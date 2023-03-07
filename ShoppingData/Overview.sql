@@ -14,12 +14,13 @@ SELECT * FROM public."sales"
 
 -- Time Related Queries:
 
--- Checking the number of orders set for each day with the condition that the order has been delivered
+-- Checking the number of orders set for each day in a certain period of time with the condition that the order has been delivered
 SELECT DATE("order_date") AS order_day, COUNT(*) AS order_count
 FROM "orders"
 WHERE "delivery_date" IS NOT NULL AND order_date BETWEEN '2021-01-01' AND '2021-01-31'
 GROUP BY order_day
 ORDER BY order_day ASC;
+-- In this example we are viewing the month of january.
 
 -- Checking the orders but weekly instead of daily
 SELECT DATE_TRUNC('week', "order_date") AS order_week, COUNT(*) AS order_count
@@ -27,6 +28,7 @@ FROM "orders"
 WHERE "delivery_date" IS NOT NULL
 GROUP BY order_week
 ORDER BY order_week DESC;
+-- Weekly sales over the entire year, this data can be used to visualize performance over the year
 
 -- Checking the orders for each month including total revenue, ranked from best to worst month
 SELECT DATE_TRUNC('month', "order_date") AS order_month, COUNT(*) AS order_count, SUM("sales".total_price) as total_revenue
@@ -35,6 +37,7 @@ JOIN "sales" ON orders.order_id = sales.order_id
 WHERE "delivery_date" IS NOT NULL
 GROUP BY order_month
 ORDER BY order_count DESC;
+-- March of 2021 had the highest total orders of 635 with a revenue of $131364
 
 -- Checking what day of the week has the best average sales
 WITH sales_by_day AS(
@@ -78,6 +81,8 @@ TRUNC(AVG(sales_total)) as avg_sales, order_month
 FROM sales_by_day
 GROUP BY order_month, day_int
 ORDER BY order_month ASC, avg_sales DESC;
+-- Saturdays and Sundays or Mondays and tuesdays seem to carry the highest number of sales.
+-- varies by month
 
 -- Checking the most popular products in each season (catered towards australia's seasons)
 WITH season_sales AS(
@@ -99,6 +104,10 @@ SELECT season, product_name, sales_count,
 FROM season_sales
 WHERE season IS NOT NULL
 ORDER BY season, rank;
+-- Denim is the most popular product in every season
+-- The second most popular varies between joggers, pleated, and casual slim fit
+
+
 /*
 The information retrieved in this series of queries can assist with understanding how the company’s
 performance is going throughout the year, with deeper information on weekly and daily performance. 
@@ -115,6 +124,7 @@ JOIN "orders"
 ON customers.customer_id = orders.customer_id
 GROUP BY "customers".state
 ORDER BY order_count DESC;
+-- South Australia (148), Queensland (139), and Western Australia (130) have the highest order count.
 
 -- Average delivery time in each state
 SELECT   AVG("orders".delivery_date - "orders".order_date) as avg_delivery_time, "customers".state
@@ -122,7 +132,9 @@ FROM "orders"
 JOIN customers ON orders.customer_id = customers.customer_id
 WHERE "orders".delivery_date IS NOT NULL
 GROUP BY  "customers".state
-ORDER BY avg_delivery_time DESC;
+ORDER BY avg_delivery_time ASC;
+-- Queensland has the fasted average delivery time
+-- New South Wales has the slowest average delivery time
 
 -- Finding top 3 most popular products in each state
 WITH most_popular_products_by_state AS(
@@ -138,11 +150,13 @@ SELECT "state", "product_name", "total_sales"
 FROM most_popular_products_by_state
 WHERE rank <= 3
 ORDER BY "state", rank
+-- As it can be prosumed from previous queries, Denim is present as one of the top 3 items in every state
 
 /*
 The information retrieved from this set of queries is catered to the locations where the product
 is being delivered. Sales volume and delivery time can help management decide on building warehouses
 to hold products near the states with the highest sales rate and improve delivery time for high-priority reas.
+We also concluded that denim products are carry the most sales.
 */
 
 -- Product related query
@@ -154,12 +168,14 @@ JOIN "sales"
 ON products.product_id = sales.product_id
 GROUP BY "products".product_type, "products".product_name
 ORDER BY Num_sales DESC;
+-- Jogger pants produced the highest sales count at 334 sales
 
 -- Looking at the products that have not produced any sales
 SELECT "products".product_name, "products".product_type
 FROM "products"
 LEFT JOIN sales ON products.product_id = sales.product_id
 WHERE sales.product_id IS NULL;
+-- The products displayed can be reevaluated to be removed from the sales pool.
 
 -- Checking what sizes are most sold for each product type
 SELECT "products".product_type, "products".size, SUM("sales".quantity) as total_sales
@@ -167,6 +183,7 @@ FROM "products"
 JOIN sales ON products.product_id = sales.product_id
 GROUP BY products.product_type, products.size
 ORDER BY total_sales DESC;
+-- The most popular size for trousers is XL, for jackets is XS, for shirts it is S.
 
 -- Checking sum of products have sold in the last month and comparing them to inventory count
 WITH last_month_sales AS (
@@ -183,6 +200,7 @@ FROM products
 LEFT JOIN last_month_sales ON products.product_id = last_month_sales.product_id
 WHERE total_sales IS NOT NULL
 ORDER BY total_sales DESC;
+-- This query is helpful for calculating what products need to be restocked and the urgency for restocking
 
 --Checking what colors are most popular
 SELECT "products".product_type, "products".colour, SUM("sales".quantity) as total_sales
@@ -190,6 +208,7 @@ FROM "products"
 JOIN sales ON products.product_id = sales.product_id
 GROUP BY products.product_type, products.colour
 ORDER BY total_sales DESC;
+-- The most popular colors are blue, violet, green, and indigo.
 
 -- Checking for the 5 most expensive products
 SELECT DISTINCT(product_name),product_type, price
@@ -201,6 +220,7 @@ LIMIT 5
 SELECT product_type, MIN(price) as minimum_tag, MAX(price) as Maximum_tag
 FROM products
 GROUP BY product_type;
+-- all products have a similar price range between $90 and $119
 
 /*
 The information retrieved from this set of queries is focused on the product carried by the supplier.
@@ -220,17 +240,20 @@ JOIN sales ON orders.order_id = sales.order_id
 GROUP BY "orders".customer_id
 ORDER BY total_quantity DESC
 LIMIT 10;
+-- customer 282 has purchased the highest product count at 74 items for $7632
 
 -- Customers that have not ordered an item
 SELECT "customers".customer_name
 FROM "customers"
 LEFT JOIN orders ON customers.customer_id = orders.customer_id
 WHERE orders.customer_id IS NULL;
+-- These customers can be targeted for coupons or advertizements to bring forward more sales
 
 -- Overall Average average time spend on deliveries
 SELECT  AVG("orders".delivery_date - "orders".order_date) as avg_delivery_time
 FROM "orders"
 WHERE "orders".delivery_date IS NOT NULL;
+-- The average delivery time is 14 days
 
 -- Average delivery time for each customer
 SELECT  "orders".customer_id, AVG("orders".delivery_date - "orders".order_date) as avg_delivery_time,
@@ -248,13 +271,15 @@ FROM "customers"
 JOIN orders ON customers.customer_id = orders.customer_id
 GROUP BY "customers".gender
 ORDER BY orders_placed DESC;
+-- Females, Genderfluid, and males haves the highest order placed
 
 -- Checking what each age range contributes to ordering
 SELECT FLOOR("customers".age / 10) * 10 AS age_range, COUNT("orders".order_id) AS total_orders 
 FROM "customers" 
 LEFT JOIN orders ON customers.customer_id = orders.customer_id 
 GROUP BY age_range 
-ORDER BY age_range;
+ORDER BY total_orders DESC;
+-- customers in the 20s, 50s, and 30s have the highest order count
 
 /*
 The information extracted in this set of queries is catered around understanding the customer base more.
